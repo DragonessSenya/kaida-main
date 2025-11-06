@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36603.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida Dashboard", "kaida-dashboard\Kaida Dashboard.csproj", "{41D00013-33E9-8B25-35D6-972D9D8C2079}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer", "Kaida.AuthServer\Kaida.AuthServer.csproj", "{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer.Tests", "Kaida.AuthServer.Tests\Kaida.AuthServer.Tests.csproj", "{7361B216-557C-469E-8C8E-B1634F3E652D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{41D00013-33E9-8B25-35D6-972D9D8C2079}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41D00013-33E9-8B25-35D6-972D9D8C2079}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41D00013-33E9-8B25-35D6-972D9D8C2079}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41D00013-33E9-8B25-35D6-972D9D8C2079}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7361B216-557C-469E-8C8E-B1634F3E652D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7361B216-557C-469E-8C8E-B1634F3E652D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7361B216-557C-469E-8C8E-B1634F3E652D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7361B216-557C-469E-8C8E-B1634F3E652D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8DF46F17-BA11-4C89-94AA-9D51DC02FAAE}
+	EndGlobalSection
+EndGlobal
