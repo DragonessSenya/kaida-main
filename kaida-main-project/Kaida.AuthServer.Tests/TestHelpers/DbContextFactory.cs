@@ -8,7 +8,7 @@ namespace Kaida.AuthServer.Tests.TestHelpers
 {
     public static class DbContextFactory
     {
-        public static AuthDbContext CreateInMemory()
+        public static AuthDbContext CreateInMemory(string v)
         {
             var options = new DbContextOptionsBuilder<AuthDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -17,7 +17,7 @@ namespace Kaida.AuthServer.Tests.TestHelpers
             var context = new AuthDbContext(options);
 
             // Seed an application
-            var app = new Application(Guid.NewGuid(), "TestApp");
+            var app = new Application(Guid.NewGuid(), "DemoApp");
             context.Apps.Add(app);
 
             // Seed a user access for testuser

@@ -20,39 +20,40 @@ public class UserAccess
 
     public UserAccess()
     {
-        
     }
 
     /// <summary>
     /// The primary key of the UserAccess entry.
     /// </summary>
     [Key]
-    public int Id { get; init; }
+    public int Id { get; set; }
 
     /// <summary>
     /// The ID of the user (matches IdentityUser.Id).
     /// </summary>
     [Required, MaxLength(450)]
-    public required string UserId { get; init; }
+    public required string UserId { get; set; }
 
     /// <summary>
     /// The ID of the application the user has access to.
     /// </summary>
-    public required Guid AppId { get; init; }
+    public required Guid AppId { get; set; }
 
     /// <summary>
     /// Optional access level for the user in this app (e.g., Admin, Read, Write).
     /// </summary>
     [Required, MaxLength(50)]
-    public string? AccessLevel { get; init; }
+    public string? AccessLevel { get; set; }
 
     /// <summary>
     /// Navigation property to the <see cref="IdentityUser"/>.
+    /// Marked virtual and nullable for EF Core.
     /// </summary>
-    public IdentityUser User { get; init; }
+    public virtual IdentityUser? User { get; set; }
 
     /// <summary>
     /// Navigation property to the <see cref="Application"/> entity.
+    /// Marked virtual and nullable for EF Core.
     /// </summary>
-    public Application App { get; init; }
+    public virtual Application? App { get; set; }
 }

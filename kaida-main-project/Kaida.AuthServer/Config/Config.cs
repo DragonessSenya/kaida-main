@@ -41,6 +41,16 @@ public static class Config
                 AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
                 ClientSecrets = { new Secret("super-secret-trello".Sha256()) },
                 AllowedScopes = { "trello_api", "openid", "profile", "email" }
+            },
+
+             // DemoApp (added to satisfy default fallback)
+            new Client
+            {
+                ClientId = "DemoApp",
+                AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
+                ClientSecrets = { new Secret("super-secret-demoapp".Sha256()) },
+                // adjust allowed scopes to match what DemoApp needs
+                AllowedScopes = { "dashboard_api", "openid", "profile", "email" }
             }
         };
 }

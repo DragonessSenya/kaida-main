@@ -1,13 +1,15 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Duende.IdentityServer.Models;
+using Duende.IdentityServer.Services;
+using Duende.IdentityServer.Stores;
+using Duende.IdentityServer.Validation;
 using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Sqlite.Query.Internal;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Kaida.AuthServer.Controllers;
 
@@ -20,76 +22,113 @@ namespace Kaida.AuthServer.Controllers;
 public class AuthController(
     UserManager<IdentityUser> userManager,
     AuthDbContext dbContext,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    ITokenService tokenService,
+    ITokenCreationService tokenCreationService,
+    IClientStore clientStore,
+    IResourceStore resourceStore,
+    ITokenRequestValidator tokenRequestValidator) // <- new
     : ControllerBase
 {
     private readonly UserManager<IdentityUser> _userManager = userManager;
     private readonly AuthDbContext _dbContext = dbContext;
     private readonly IConfiguration _configuration = configuration;
+    private readonly ITokenService _tokenService = tokenService;
+    private readonly ITokenCreationService _tokenCreationService = tokenCreationService;
+    private readonly IClientStore _clientStore = clientStore;
+    private readonly IResourceStore _resourceStore = resourceStore;
+    private readonly ITokenRequestValidator _tokenRequestValidator = tokenRequestValidator;
 
     /// <summary>
-    /// Authenticates a user for a specific application and returns a JWT if successful.
+    /// Authenticates a user for a specific application and returns an IdentityServer-issued access token if successful.
     /// </summary>
-    /// <param name="request">The login request containing username, password, and the appId to access.</param>
-    /// <returns>
-    /// 200 OK with <see cref="LoginResponse"/> containing JWT and expiration if successful.  
-    /// 400 BadRequest if model validation fails.  
-    /// 401 Unauthorized if credentials are invalid.  
-    /// 403 Forbid if the user does not have access to the requested application.
-    /// </returns>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var user = await _userManager.FindByNameAsync(request.Username);
-        if (user != null && !await _userManager.CheckPasswordAsync(user, request.Password))
-            return Unauthorized("Invalid Credentials");
+        if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
+            return Unauthorized("Invalid credentials");
 
-        var hasAccess =
-            await _dbContext.UserAccesses.AnyAsync(x =>
-                user != null && x.UserId == user.Id && x.AppId == request.AppId);
+        var hasAccess = await _dbContext.UserAccesses
+            .AnyAsync(x => x.UserId == user.Id && x.AppId == request.AppId);
+        if (!hasAccess) return Forbid("User does not have access to this application");
 
-        if (!hasAccess)
-            return Forbid("User does not have access to this application");
+        var app = await _dbContext.Apps.FindAsync(request.AppId);
+        if (app == null) return BadRequest("Invalid application");
 
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]
-        ?? throw new InvalidOperationException("JWT secret is not configured."));
-        
-        var tokenHandler = new JwtSecurityTokenHandler
+        var apiScope = app.Name.Contains("trello", StringComparison.OrdinalIgnoreCase)
+            ? "trello_api"
+            : "dashboard_api";
+        var scopes = apiScope; // single scope string for the ROPC request
+
+        // Resolve client id as before
+        var clientId = _configuration[$"AppClientMap:{request.AppId}"] ?? "DemoApp";
+        var client = await _clientStore.FindClientByIdAsync(clientId)
+            ?? throw new InvalidOperationException($"Client '{clientId}' not found in client store.");
+
+        // Build token endpoint parameters for ROPC
+        var parameters = new System.Collections.Specialized.NameValueCollection
         {
-            MaximumTokenSizeInBytes = 16 * 1024
+            { "grant_type", "password" },
+            { "username", request.Username },
+            { "password", request.Password },
+            { "scope", scopes },
+            { "client_id", client.ClientId } // optional if client already known
         };
 
-        var claims = new List<Claim>
+        // Validate the token request using IdentityServer pipeline
+        var tokenRequestValidationContext = new Duende.IdentityServer.Validation.TokenRequestValidationContext
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user!.Id),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-            new Claim("appId", request.AppId.ToString())
+            RequestParameters = parameters,
+            ClientValidationResult = new Duende.IdentityServer.Validation.ClientSecretValidationResult
+            {
+                Client = client
+            }
+        };
+        var validationResult = await _tokenRequestValidator.ValidateRequestAsync(tokenRequestValidationContext);
+        if (validationResult.IsError)
+            return BadRequest(validationResult.ErrorDescription ?? "invalid_request");
+
+        // Use the validated request to create the token correctly
+        var validatedRequest = validationResult.ValidatedRequest;
+        var subject = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+            new Claim("appId", request.AppId.ToString()),
+            new Claim("name", user.UserName ?? string.Empty)
+        }, "password"));
+
+        // Ensure the subject is attached (the validator may have set it from resource owner validation)
+        validatedRequest.Subject = validatedRequest.Subject ?? subject;
+
+        var creationRequest = new Duende.IdentityServer.Models.TokenCreationRequest
+        {
+            Subject = validatedRequest.Subject,
+            ValidatedRequest = validatedRequest,
+            ValidatedResources = validatedRequest.ValidatedResources
         };
 
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(key),
-                SecurityAlgorithms.HmacSha256Signature)
-
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
+        var accessToken = await _tokenService.CreateAccessTokenAsync(creationRequest);
+        var jwt = await _tokenCreationService.CreateTokenAsync(accessToken);
 
         var response = new LoginResponse
         {
-            Token = tokenHandler.WriteToken(token),
-            Expiration = tokenDescriptor.Expires!.Value
+            Token = jwt,
+            Expiration = DateTime.UtcNow.AddSeconds(accessToken.Lifetime)
         };
 
         return Ok(response);
     }
 }
+
+
+
+
+
+
 
 
 
