@@ -35,7 +35,7 @@ public class UserAccess
     public required string UserId { get; set; }
 
     /// <summary>
-    /// The ID of the application the user has access to.
+    /// The ID's of the applications the user has access to.
     /// </summary>
     public required Guid AppId { get; set; }
 
