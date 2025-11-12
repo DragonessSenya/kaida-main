@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36603.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer", "Kaida.AuthServer\Kaida.AuthServer.csproj", "{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer.Tests", "Kaida.AuthServer.Tests\Kaida.AuthServer.Tests.csproj", "{7361B216-557C-469E-8C8E-B1634F3E652D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.Blazor", "Kaida.Blazor\Kaida.Blazor.csproj", "{E251AA94-BCE3-4B7F-BE6B-4B65DBD9E924}"
@@ -15,16 +13,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README2.MD = README2.MD
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer", "Kaida.AuthServer\Kaida.AuthServer.csproj", "{7DF9F0DD-D634-4F3D-A7D3-C5B88DDE4B76}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer.Old", "Kaida.AuthServer.Old\Kaida.AuthServer.Old.csproj", "{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FB28D713-53EB-4C27-96F8-B4BA466BDCE5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7361B216-557C-469E-8C8E-B1634F3E652D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7361B216-557C-469E-8C8E-B1634F3E652D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7361B216-557C-469E-8C8E-B1634F3E652D}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -33,6 +31,14 @@ Global
 		{E251AA94-BCE3-4B7F-BE6B-4B65DBD9E924}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E251AA94-BCE3-4B7F-BE6B-4B65DBD9E924}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E251AA94-BCE3-4B7F-BE6B-4B65DBD9E924}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DF9F0DD-D634-4F3D-A7D3-C5B88DDE4B76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DF9F0DD-D634-4F3D-A7D3-C5B88DDE4B76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DF9F0DD-D634-4F3D-A7D3-C5B88DDE4B76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DF9F0DD-D634-4F3D-A7D3-C5B88DDE4B76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

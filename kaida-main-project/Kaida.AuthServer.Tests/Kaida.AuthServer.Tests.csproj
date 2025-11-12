@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Kaida.AuthServer\Kaida.AuthServer.csproj" />
+    <ProjectReference Include="..\Kaida.AuthServer\Kaida.AuthServer.Old.csproj" />
   </ItemGroup>
 
   <ItemGroup>
