@@ -1,131 +1,93 @@
-﻿using System.IO;
-using Kaida.AuthServer.Entities;
+﻿using Kaida.AuthServer.Entities;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace Kaida.AuthServer.Data;
 
-public static class DbSeeder
+public class DBSeeder
 {
-    public static async Task SeedAsync(IServiceProvider services)
+    internal static async Task SeedAsync(AuthDbContext dbContext, UserManager<IdentityUser> userManager)
     {
-        using var scope = services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-
-        // 1. Create test user if it doesn't exist
-        var testUser = await userManager.FindByNameAsync("testuser");
-        if (testUser == null)
+        if (!dbContext.Apps.Any())
         {
-            testUser = new IdentityUser { UserName = "testuser", Email = "test@example.com" };
-            await userManager.CreateAsync(testUser, "Password123!");
-            // reload to ensure Id populated
-            testUser = await userManager.FindByNameAsync("testuser");
-        }
+            var appsToSeed = new[] { "KaidaDashboard", "KaidaTaskboard" };
 
-        // 2. Discover projects in the solution and create Application records for each project
-        var solutionRoot = FindSolutionDirectory() ?? Directory.GetCurrentDirectory();
-
-        var projectFiles = Directory.EnumerateFiles(solutionRoot, "*.csproj", SearchOption.AllDirectories)
-            // ignore build artifacts and obj folders
-            .Where(p => !p.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
-                        && !p.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        // Normalize current project file name to exclude it from apps
-        const string currentProjectFileName = "Kaida.AuthServer.csproj";
-
-        foreach (var proj in projectFiles)
-        {
-            var projFileName = Path.GetFileName(proj);
-            if (string.Equals(projFileName, currentProjectFileName, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            // Skip test projects (common convention)
-            if (projFileName.EndsWith(".Tests.csproj", StringComparison.OrdinalIgnoreCase)
-                || projFileName.EndsWith(".Test.csproj", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var appName = Path.GetFileNameWithoutExtension(projFileName);
-            if (string.IsNullOrWhiteSpace(appName))
-                continue;
-
-            // Create the Application record if it doesn't exist
-            var existing = await context.Apps.FirstOrDefaultAsync(a => a.Name == appName);
-            if (existing == null)
+            foreach (var appName in appsToSeed)
             {
-                var app = new Application(Guid.NewGuid(), appName);
-                context.Apps.Add(app);
-                await context.SaveChangesAsync();
-                existing = app;
+                var app = new Application
+                {
+                    Name = appName
+                };
+                dbContext.Apps.Add(app);
             }
 
-            // Give the test user Admin access to the app if not already present
-            if (testUser != null && !await context.UserAccesses.AnyAsync(x => x.UserId == testUser.Id && x.AppId == existing.Id))
+            dbContext.SaveChanges();
+        }
+
+        var adminUsername = "Senya";
+        var adminUser = await userManager.FindByNameAsync(adminUsername);
+
+        if (adminUser == null)
+        {
+            adminUser = new IdentityUser
             {
-                context.UserAccesses.Add(new UserAccess
+                UserName = adminUsername,
+                Email = ""
+            };
+            var result = await userManager.CreateAsync(adminUser, "Password123!");
+            if (!result.Succeeded)
+            {
+                throw new Exception($"Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+
+        }
+
+
+        foreach (var app in dbContext.Apps)
+        {
+            if (!dbContext.UserAccesses.Any(ua => ua.UserId == adminUser.Id && ua.AppId == app.AppId))
+            {
+                dbContext.UserAccesses.Add(new UserAccess
                 {
-                    UserId = testUser.Id,
-                    AppId = existing.Id,
+                    UserId = adminUser.Id,
+                    AppId = app.AppId,
                     AccessLevel = "Admin"
                 });
-                await context.SaveChangesAsync();
             }
         }
 
-        // If no projects found (fallback), ensure there's at least one demo App (backwards compatible)
-        if (!context.Apps.Any())
-        {
-            var demo = new Application(Guid.NewGuid(), "DemoApp");
-            context.Apps.Add(demo);
-            await context.SaveChangesAsync();
+        var dashboardTestUserName = "dashboard_tester";
+        var testDashboardUser = await userManager.FindByNameAsync(dashboardTestUserName);
 
-            if (testUser != null && !context.UserAccesses.Any())
+        if (testDashboardUser == null)
+        {
+            testDashboardUser = new IdentityUser
             {
-                context.UserAccesses.Add(new UserAccess
+                UserName = dashboardTestUserName,
+                Email = ""
+            };
+            var result = await userManager.CreateAsync(testDashboardUser, "Password123!");
+            if (!result.Succeeded)
+            {
+                throw new Exception($"Failed to create test dashboard user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+        var dashboardApp = dbContext.Apps.FirstOrDefault(a => a.Name == "KaidaDashboard");
+        if (dashboardApp != null)
+        {
+            if (!dbContext.UserAccesses.Any(ua => ua.UserId == testDashboardUser.Id && ua.AppId == dashboardApp!.AppId))
+            {
+                dbContext.UserAccesses.Add(new UserAccess
                 {
-                    UserId = testUser.Id,
-                    AppId = demo.Id,
-                    AccessLevel = "Admin"
+                    UserId = testDashboardUser.Id,
+                    AppId = dashboardApp.AppId,
+                    AccessLevel = "User"
                 });
-                await context.SaveChangesAsync();
             }
         }
-    }
+        await dbContext.SaveChangesAsync();
 
-    // Walks up from the executing directory to find a directory containing a .sln file.
-    private static string? FindSolutionDirectory()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            try
-            {
-                if (dir.GetFiles("*.sln", SearchOption.TopDirectoryOnly).Any())
-                    return dir.FullName;
-            }
-            catch
-            {
-                // ignore access issues and continue walking up
-            }
-            dir = dir.Parent;
-        }
-
-        // fallback: try current working directory
-        dir = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (dir != null)
-        {
-            try
-            {
-                if (dir.GetFiles("*.sln", SearchOption.TopDirectoryOnly).Any())
-                    return dir.FullName;
-            }
-            catch
-            {
-            }
-            dir = dir.Parent;
-        }
-
-        return null;
     }
 }
+
+
+

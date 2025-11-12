@@ -1,57 +1,60 @@
 ﻿using Kaida.AuthServer.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kaida.AuthServer.Data
 {
     /// <summary>
-    /// The EF Core database context for the AuthServer.
-    /// Manages users, roles, applications, and per-app access.
-    /// Inherits from <see cref="IdentityDbContext"/> for ASP.NET Core Identity integration.
+    /// Database context for the authentication server.
+    /// Inherits from IdentityDbContext to include ASP.NET Identity tables,
+    /// and adds application-specific entities.
     /// </summary>
-    public class AuthDbContext(DbContextOptions<AuthDbContext> options)
-        : IdentityDbContext(options)
+    public class AuthDbContext(DbContextOptions<AuthDbContext> options) : IdentityDbContext<IdentityUser>(options)
     {
         /// <summary>
-        /// Applications registered in the AuthServer.
+        /// Gets or sets the collection of registered applications.
         /// </summary>
-        public DbSet<Application> Apps { get; set; }
+        public DbSet<Application> Apps { get; set; } = null!;
+
 
         /// <summary>
-        /// User access entries linking users to specific applications.
-        /// </summary>
-        public DbSet<UserAccess> UserAccesses { get; set; }
+        /// Gets or sets the collection of user access records.
+        /// </summary> 
+        public DbSet<UserAccess> UserAccesses { get; set; } = null!;
 
         /// <summary>
-        /// Configure EF Core model relationships and constraints.
+        /// Configures the model relationships and constraints using Fluent API.
         /// </summary>
-        /// <param name="builder">The <see cref="ModelBuilder"/> instance.</param>
-        protected override void OnModelCreating(ModelBuilder builder)
+        /// <param name=modelBuilder>The model builder to configure the entity relationships.</param>
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(builder);
+            base.OnModelCreating(modelBuilder);
 
-            // Configure UserAccess
-            builder.Entity<UserAccess>(entity =>
+            //Application entity configuration
+            modelBuilder.Entity<Application>(entity =>
             {
-                entity.Property(x => x.UserId).HasMaxLength(450).IsRequired();
-                entity.Property(x => x.AccessLevel).HasMaxLength(50);
-
-                entity.HasOne(x => x.User)
-                      .WithMany()
-                      .HasForeignKey(x => x.UserId)
-                      .IsRequired();
-
-                entity.HasOne(x => x.App)
-                      .WithMany(x => x.UserAccesses)
-                      .HasForeignKey(x => x.AppId)
-                      .IsRequired();
+                entity.HasKey(e => e.AppId);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             });
 
-            // Configure Application
-            builder.Entity<Application>(entity =>
-            {
-                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            //UserAccess entity configuration
+            modelBuilder.Entity<UserAccess>(entity => {
+                entity.HasKey(e => e.AppId);
+               
             });
+
+            modelBuilder.Entity<UserAccess>()
+                .HasOne<IdentityUser>()
+                .WithMany()
+                .HasForeignKey(ua => ua.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserAccess>()
+                .HasOne(ua => ua.App)
+                .WithMany(a => a.UserAccesses)
+                .HasForeignKey(ua => ua.AppId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

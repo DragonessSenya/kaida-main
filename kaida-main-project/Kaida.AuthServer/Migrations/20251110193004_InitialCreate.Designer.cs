@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kaida.AuthServer.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    [Migration("20251106153059_InitialCreate")]
+    [Migration("20251110193004_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,44 +20,36 @@ namespace Kaida.AuthServer.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
 
-            modelBuilder.Entity("Kaida.AuthServer.Data.Application", b =>
+            modelBuilder.Entity("Kaida.AuthServer.Entities.Application", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<Guid>("AppId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                    b.HasKey("AppId");
 
                     b.ToTable("Apps");
                 });
 
             modelBuilder.Entity("Kaida.AuthServer.Entities.UserAccess", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("AppId")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("AccessLevel")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("AppId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasMaxLength(450)
                         .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("AppId");
+                    b.HasKey("AppId");
 
                     b.HasIndex("UserId");
 
@@ -258,21 +250,19 @@ namespace Kaida.AuthServer.Migrations
 
             modelBuilder.Entity("Kaida.AuthServer.Entities.UserAccess", b =>
                 {
-                    b.HasOne("Kaida.AuthServer.Data.Application", "App")
+                    b.HasOne("Kaida.AuthServer.Entities.Application", "App")
                         .WithMany("UserAccesses")
                         .HasForeignKey("AppId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("App");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -326,7 +316,7 @@ namespace Kaida.AuthServer.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Kaida.AuthServer.Data.Application", b =>
+            modelBuilder.Entity("Kaida.AuthServer.Entities.Application", b =>
                 {
                     b.Navigation("UserAccesses");
                 });

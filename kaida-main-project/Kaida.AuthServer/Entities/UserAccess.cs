@@ -1,59 +1,15 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Kaida.AuthServer.Data;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 
-namespace Kaida.AuthServer.Entities;
-
-/// <summary>
-/// Represents the access a user has to a specific application.
-/// Controls which apps a user can access and at what access level.
-/// </summary>
-public class UserAccess
+namespace Kaida.AuthServer.Entities
 {
-    public UserAccess(int id, string userId, Guid appId, string? accessLevel)
+    /// <summary>
+    /// Represents a link between a user and an application, defining access level.
+    /// </summary>
+    public class UserAccess
     {
-        Id = id;
-        UserId = userId;
-        AppId = appId;
-        AccessLevel = accessLevel;
+        public string UserId { get; set; } = string.Empty;
+        public Guid AppId { get; set; }
+        public string AccessLevel { get; set; } = "User";
+        public Application? App { get; set; } = null!;
     }
-
-    public UserAccess()
-    {
-    }
-
-    /// <summary>
-    /// The primary key of the UserAccess entry.
-    /// </summary>
-    [Key]
-    public int Id { get; set; }
-
-    /// <summary>
-    /// The ID of the user (matches IdentityUser.Id).
-    /// </summary>
-    [Required, MaxLength(450)]
-    public required string UserId { get; set; }
-
-    /// <summary>
-    /// The ID's of the applications the user has access to.
-    /// </summary>
-    public required Guid AppId { get; set; }
-
-    /// <summary>
-    /// Optional access level for the user in this app (e.g., Admin, Read, Write).
-    /// </summary>
-    [Required, MaxLength(50)]
-    public string? AccessLevel { get; set; }
-
-    /// <summary>
-    /// Navigation property to the <see cref="IdentityUser"/>.
-    /// Marked virtual and nullable for EF Core.
-    /// </summary>
-    public virtual IdentityUser? User { get; set; }
-
-    /// <summary>
-    /// Navigation property to the <see cref="Application"/> entity.
-    /// Marked virtual and nullable for EF Core.
-    /// </summary>
-    public virtual Application? App { get; set; }
 }

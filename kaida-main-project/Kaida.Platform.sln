@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer", "Kaida.A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer.Tests", "Kaida.AuthServer.Tests\Kaida.AuthServer.Tests.csproj", "{7361B216-557C-469E-8C8E-B1634F3E652D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.Blazor", "Kaida.Blazor\Kaida.Blazor.csproj", "{E251AA94-BCE3-4B7F-BE6B-4B65DBD9E924}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.Dashboard", "Kaida.Blazor\Kaida.Dashboard.csproj", "{E251AA94-BCE3-4B7F-BE6B-4B65DBD9E924}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject

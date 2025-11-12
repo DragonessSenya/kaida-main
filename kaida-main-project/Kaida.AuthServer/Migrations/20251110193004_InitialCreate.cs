@@ -15,12 +15,12 @@ namespace Kaida.AuthServer.Migrations
                 name: "Apps",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
+                    AppId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Apps", x => x.Id);
+                    table.PrimaryKey("PK_Apps", x => x.AppId);
                 });
 
             migrationBuilder.CreateTable(
@@ -172,20 +172,18 @@ namespace Kaida.AuthServer.Migrations
                 name: "UserAccesses",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    UserId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: false),
                     AppId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    AccessLevel = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
+                    UserId = table.Column<string>(type: "TEXT", nullable: false),
+                    AccessLevel = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserAccesses", x => x.Id);
+                    table.PrimaryKey("PK_UserAccesses", x => x.AppId);
                     table.ForeignKey(
                         name: "FK_UserAccesses_Apps_AppId",
                         column: x => x.AppId,
                         principalTable: "Apps",
-                        principalColumn: "Id",
+                        principalColumn: "AppId",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_UserAccesses_AspNetUsers_UserId",
@@ -231,11 +229,6 @@ namespace Kaida.AuthServer.Migrations
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserAccesses_AppId",
-                table: "UserAccesses",
-                column: "AppId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserAccesses_UserId",
