@@ -12,25 +12,26 @@ namespace Kaida.AuthServer.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(UserService userService) : ControllerBase
+public class AuthController(UserService userService, JwtTokenService? tokenService) : ControllerBase
 {
-    private readonly JwtTokenService? _tokenService;
+    private readonly JwtTokenService? _tokenService = tokenService;
 
     [HttpPost("login")]
-    public IActionResult Login(LoginRequest request)
+    public async Task<IActionResult> LoginAsync(LoginRequest request)
     {
         // 1. Validate user credentials
-        User user = userService.ValidateUser(request.Username, request.Password);
-        //if (user == null) return SystemException();
+        var user = await userService.ValidateUserAsync(request.Username, request.Password);
+        if (user == null) return Unauthorized(new {Message = "Your not authorized"});
 
         // 2. Determine allowed apps
-        var allowedApps = GetAllowedAppsForUser(user.Id);
-
+        var allowedApps = (await userService.GetAllowedAppsForUserAsync(user.UserId)).ToList();
+        if (!allowedApps.Any()) return Unauthorized(new { Message = "Your not authorized for any Apps" });
         // 3. Build claims model
+        var appsClaim = allowedApps.Select(a => a.AppId.ToString()).ToList();
         var claimsModel = new JwtClaimModel
         {
-            UserId = user.Id,
-            Apps = allowedApps
+            UserId = user.UserId.ToString(),
+            Apps = appsClaim
         };
 
         // 4. Generate JWT
@@ -40,8 +41,4 @@ public class AuthController(UserService userService) : ControllerBase
         return Ok(new { AccessToken = token });
     }
 
-    private IEnumerable<string> GetAllowedAppsForUser(object id)
-    {
-        throw new NotImplementedException();
-    }
 }

@@ -1,221 +1,70 @@
-﻿//using Duende.IdentityServer.Models;
-//using Duende.IdentityServer.Services;
-//using Duende.IdentityServer.Stores;
-//using Duende.IdentityServer.Validation;
-//using Kaida.AuthServer.Old.Controllers;
-//using Kaida.AuthServer.Data;
-//using Kaida.AuthServer.Entities;
-//using Kaida.AuthServer.Models;
-//using Kaida.AuthServer.Tests.TestHelpers;
-//using Microsoft.AspNetCore.Identity;
-//using Microsoft.AspNetCore.Mvc;
-//using Microsoft.Extensions.Configuration;
-//using Moq;
+﻿using Kaida.AuthServer.Entities;
+using Kaida.AuthServer.Services;
+using Kaida.AuthServer.Tests.TestHelpers;
+using Microsoft.AspNetCore.Identity;
+using Xunit.Abstractions;
 
-//namespace Kaida.AuthServer.Tests.Controllers
-//{
-//    public class AuthControllerTests
-//    {
-//        private readonly Mock<UserManager<IdentityUser>> _userManagerMock;
-//        private readonly AuthDbContext _dbContext;
-//        private readonly Mock<IConfiguration> _configurationMock;
-//        private readonly Mock<ITokenService> _tokenServiceMock;
-//        private readonly Mock<ITokenCreationService> _tokenCreationServiceMock;
-//        private readonly Mock<IClientStore> _clientStoreMock;
-//        private readonly Mock<IResourceStore> _resourceStoreMock;
-//        private readonly Mock<ITokenRequestValidator> _tokenRequestValidatorMock;
+namespace Kaida.AuthServer.Tests.Controllers
+{
+    public class AuthControllerTests
+    {
+        private readonly UserService _userService;
+        private readonly ITestOutputHelper _output;
 
-//        private readonly IdentityUser _validUser;
-//        private Guid _validAppId;
+        public AuthControllerTests(ITestOutputHelper output)
+        {
+            var dbContext = DbContextFactory.CreateInMemory();
+            _output = output;
 
-//        public AuthControllerTests()
-//        {
-//            // --- Base setup for mocks ---
-//            _userManagerMock = MockUserManager.Create();
-//            _dbContext = DbContextFactory.CreateInMemory(Guid.NewGuid().ToString()); // isolated per test run
+            _userService = new UserService(dbContext);
+           return;
 
-//            _configurationMock = new Mock<IConfiguration>();
-//            _configurationMock.Setup(c => c["Jwt:Secret"])
-//                .Returns("THIS_IS_A_LONG_TEST_SECRET_KEY_1234567890!");
+            [Fact]
+             async Task ValidateUser_ReturnsUser_WhenCredentialsAreCorrect()
+            {
+                var db = DbContextFactory.CreateInMemory(); // fully isolated
+                var userService = new UserService(db);
 
-//            _configurationMock.Setup(c => c[It.Is<string>(s => s.StartsWith("AppClientMap:"))])
-//                .Returns("dashboard");
+                var user = await userService.ValidateUserAsync("testuser", "testPassword!");
 
-//            _tokenServiceMock = new Mock<ITokenService>();
-//            _tokenCreationServiceMock = new Mock<ITokenCreationService>();
-//            _clientStoreMock = new Mock<IClientStore>();
-//            _resourceStoreMock = new Mock<IResourceStore>();
-//            _tokenRequestValidatorMock = new Mock<ITokenRequestValidator>();
+                Assert.False(user == null, "No User Was Found");
+                _output?.WriteLine($"User was successfully obtained from the database.");
+            }
 
-//            // --- IdentityServer and token mocks ---
-//            _clientStoreMock.Setup(s => s.FindClientByIdAsync("dashboard"))
-//                .ReturnsAsync(new Client
-//                {
-//                    ClientId = "dashboard",
-//                    AllowedScopes = { "dashboard_api", "openid", "profile", "email" }
-//                });
+             
+            [Fact]
+             async Task ValidateUserAsync_WhenCredentialsAreNotCorrect()
+            {
+                var user = await _userService.ValidateUserAsync("nouser", "password");
+            
+                Assert.Null(user);
+            }
 
-//            _tokenServiceMock.Setup(s => s.CreateAccessTokenAsync(It.IsAny<TokenCreationRequest>()))
-//                .ReturnsAsync(new Token { Lifetime = 3600 });
+            [Fact]
+            async Task GetAllowedAppsForUserAsync_UserHasNoAccessToAnyApps()
+            {
+            var allowedAppsForUser = await _userService.GetAllowedAppsForUserAsync(Guid.NewGuid());
 
-//            _tokenCreationServiceMock.Setup(s => s.CreateTokenAsync(It.IsAny<Token>()))
-//                .ReturnsAsync("dummy.jwt");
+                var appsForUser = allowedAppsForUser.ToList();
+                _output?.WriteLine($"Allowed apps count: {appsForUser?.Count()}");
+                Assert.True(!appsForUser.Any(), "AllowedApp List is Empty");
+                
+            }
 
-//            _tokenRequestValidatorMock
-//                .Setup(v => v.ValidateRequestAsync(It.IsAny<TokenRequestValidationContext>()))
-//                .ReturnsAsync(new TokenRequestValidationResult(new ValidatedTokenRequest
-//                {
-//                    Client = new Client { ClientId = "dashboard" },
-//                    ValidatedResources = new ResourceValidationResult()
-//                }));
+            [Fact]
+            async Task GetAllowedAppsForUserAsync_UserHasAccessToAnyApps()
+            {
+                var user = await _userService.ValidateUserAsync("testuser", "hashedpassword");
+                if (user != null)
+                {
+                    var allowedAppsForUser = await _userService.GetAllowedAppsForUserAsync(user.UserId);
 
-//            // --- Seed a valid app and user ---
-//            var app = new Application(Guid.NewGuid(), "dashboard_app");
-//            _dbContext.Apps.Add(app);
-//            _dbContext.SaveChanges();
+                    var appsForUser = allowedAppsForUser.ToList();
+                    _output?.WriteLine($"Allowed apps count: {appsForUser?.Count()}");
+                    Assert.True(appsForUser.Any(), "User has allowed Apps");
+                }
+            }
+        }
 
-//            _validUser = new IdentityUser
-//            {
-//                Id = "user1",
-//                UserName = "testuser",
-//                Email = "test@example.com"
-//            };
-//            _validAppId = app.Id;
-//        }
-
-//        // 🧩 Helper to reset DB between tests
-//        private void ResetDatabase()
-//        {
-//            _dbContext.ChangeTracker.Clear();
-//            _dbContext.Database.EnsureDeleted();
-//            _dbContext.Database.EnsureCreated();
-
-//            var app = new Application(Guid.NewGuid(), "dashboard_app");
-//            _dbContext.Apps.Add(app);
-//            _dbContext.SaveChanges();
-
-//            _validAppId = app.Id;
-//        }
-
-//        // 🧩 Helper to configure user and access rights
-//        private void SetupValidUser(bool withAccess = true)
-//        {
-//            _userManagerMock.Setup(u => u.FindByNameAsync("testuser"))
-//                .ReturnsAsync(_validUser);
-
-//            _userManagerMock.Setup(u => u.CheckPasswordAsync(_validUser, "Test@1234"))
-//                .ReturnsAsync(true);
-
-//            if (withAccess)
-//            {
-//                _dbContext.UserAccesses.Add(new UserAccess
-//                {
-//                    AppId = _validAppId,
-//                    UserId = _validUser.Id,
-//                    AccessLevel = "Admin"
-
-//                });
-//                _dbContext.SaveChanges();
-//            }
-//        }
-
-//        // 🧪 Tests ------------------------------------------------------
-
-//        [Fact]
-//        public async Task Login_ValidUser_ReturnsJwt()
-//        {
-//            ResetDatabase();
-//            SetupValidUser();
-
-//            var controller = CreateController();
-
-//            var request = new LoginRequest
-//            {
-//                Username = "testuser",
-//                Password = "Test@1234",
-//                AppId = _validAppId
-//            };
-
-//            var result = await controller.Login(request);
-
-//            var okResult = Assert.IsType<OkObjectResult>(result);
-//            var response = Assert.IsType<LoginResponse>(okResult.Value);
-//            Assert.False(string.IsNullOrWhiteSpace(response.Token));
-//            Assert.Equal("dummy.jwt", response.Token);
-//        }
-
-//        [Fact]
-//        public async Task Login_InvalidCredentials_ReturnsUnauthorized()
-//        {
-//            ResetDatabase();
-//            SetupValidUser();
-
-//            _userManagerMock.Setup(u => u.CheckPasswordAsync(It.IsAny<IdentityUser>(), "WrongPassword"))
-//                .ReturnsAsync(false);
-
-//            var controller = CreateController();
-
-//            var request = new LoginRequest
-//            {
-//                Username = "testuser",
-//                Password = "WrongPassword",
-//                AppId = _validAppId
-//            };
-
-//            var result = await controller.Login(request);
-//            Assert.IsType<UnauthorizedObjectResult>(result);
-//        }
-
-//        [Fact]
-//        public async Task Login_UserWithoutAccess_ReturnsForbid()
-//        {
-//            ResetDatabase();
-//            SetupValidUser(withAccess: false);
-
-//            var controller = CreateController();
-
-//            var request = new LoginRequest
-//            {
-//                Username = "testuser",
-//                Password = "Test@1234",
-//                AppId = _validAppId
-//            };
-
-//            var result = await controller.Login(request);
-//            Assert.IsType<ForbidResult>(result);
-//        }
-
-//        [Fact]
-//        public async Task Login_NonExistentUser_ReturnsUnauthorized()
-//        {
-//            ResetDatabase();
-
-//            _userManagerMock.Setup(u => u.FindByNameAsync("nouser"))
-//                .ReturnsAsync((IdentityUser?)null);
-
-//            var controller = CreateController();
-
-//            var request = new LoginRequest
-//            {
-//                Username = "nouser",
-//                Password = "password",
-//                AppId = _validAppId
-//            };
-
-//            var result = await controller.Login(request);
-//            Assert.IsType<UnauthorizedObjectResult>(result);
-//        }
-
-//        // 🔧 Helper for consistent controller creation
-//        private AuthController CreateController() =>
-//            new AuthController(
-//                _userManagerMock.Object,
-//                _dbContext,
-//                _configurationMock.Object,
-//                _tokenServiceMock.Object,
-//                _tokenCreationServiceMock.Object,
-//                _clientStoreMock.Object,
-//                _resourceStoreMock.Object,
-//                _tokenRequestValidatorMock.Object);
-//    }
-//}
+    }
+}

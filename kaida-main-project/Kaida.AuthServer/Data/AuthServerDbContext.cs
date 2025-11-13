@@ -1,15 +1,26 @@
-﻿using Kaida.AuthServer.Models;
+﻿using Kaida.AuthServer.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kaida.AuthServer.Data;
 
-public class AuthServerDbContext : DbContext
+public class AuthServerDbContext(DbContextOptions<AuthServerDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<App> Apps { get; set; } = null!;
+    public DbSet<AppAccess> AppAccess { get; set; } = null!;
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        optionsBuilder.UseSqlite("Data Source = AuthServer.db");
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AppAccess>()
+            .HasKey(a => new
+            {
+                a.UserId, a.AppId
+            });
+
     }
+
 }
 

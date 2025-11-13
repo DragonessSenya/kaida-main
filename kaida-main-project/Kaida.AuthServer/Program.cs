@@ -1,19 +1,24 @@
-using System.Text;
+using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 
 var builder = WebApplication.CreateBuilder(args);
 
+var dbConnectionString = builder.Configuration["DataSource"];
 var appKey = builder.Configuration["JwtSettings:AuthServer:Key"];
 var issuer = builder.Configuration["JwtSettings:AuthServer:Issuer"];
 if (string.IsNullOrEmpty(appKey) || string.IsNullOrEmpty(issuer))
     throw new InvalidOperationException("JWT Key or Issuer is missing in configuration");
 
-// Add services to the container.
+builder.Services.AddDbContext<AuthServerDbContext>(options =>
+    options.UseSqlite(dbConnectionString));
 
+// Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
