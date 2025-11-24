@@ -1,7 +1,9 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using Kaida.AuthServer.Models;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using Kaida.AuthServer.Entities;
 using Microsoft.IdentityModel.Tokens;
 using JwtRegisteredClaimNames = Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames;
 
@@ -46,5 +48,6 @@ namespace Kaida.AuthServer.Services
             return tokenHandler.WriteToken(token);
 
         }
+
     }
 }

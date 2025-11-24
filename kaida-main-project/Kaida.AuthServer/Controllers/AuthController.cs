@@ -1,10 +1,7 @@
-﻿using Kaida.AuthServer.Data;
+﻿using Kaida.AuthServer.Entities;
 using Kaida.AuthServer.Models;
 using Kaida.AuthServer.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using LoginRequest = Kaida.AuthServer.Models.LoginRequest;
 
 namespace Kaida.AuthServer.Controllers;
@@ -12,9 +9,9 @@ namespace Kaida.AuthServer.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(UserService userService, JwtTokenService? tokenService) : ControllerBase
+public class AuthController(UserService userService, JwtTokenService tokenService) : ControllerBase
 {
-    private readonly JwtTokenService? _tokenService = tokenService;
+    private readonly JwtTokenService _tokenService = tokenService;
 
     [HttpPost("login")]
     public async Task<IActionResult> LoginAsync(LoginRequest request)
@@ -25,7 +22,7 @@ public class AuthController(UserService userService, JwtTokenService? tokenServi
 
         // 2. Determine allowed apps
         var allowedApps = (await userService.GetAllowedAppsForUserAsync(user.UserId)).ToList();
-        if (!allowedApps.Any()) return Unauthorized(new { Message = "Your not authorized for any Apps" });
+        if (!allowedApps.Any()) return Unauthorized(new { Message = "Your not authorized" });
         // 3. Build claims model
         var appsClaim = allowedApps.Select(a => a.AppId.ToString()).ToList();
         var claimsModel = new JwtClaimModel
@@ -35,10 +32,28 @@ public class AuthController(UserService userService, JwtTokenService? tokenServi
         };
 
         // 4. Generate JWT
-        var token = _tokenService?.GenerateJwtToken(claimsModel);
+        var token = _tokenService.GenerateJwtToken(claimsModel);
+        var refreshToken = await userService.GenerateRefreshTokenForUserAsync(user.UserId, 7);
 
         // 5. Return token (and refresh token if you implement one)
-        return Ok(new { AccessToken = token });
+        return Ok(new
+        {
+            AccessToken = token,
+            RefreshToken = refreshToken.Token
+        });
+    }
+
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        var refreshTokenIsValid = userService.ValidateRefreshTokenForUserAsync(request.UserId, request.Token);
+        if (!refreshTokenIsValid) return Unauthorized(new { Message = "Your not authorized" });
+
+
+
+        // 5. Return token (and refresh token if you implement one)
+        return Ok(
+        );
     }
 
 }
