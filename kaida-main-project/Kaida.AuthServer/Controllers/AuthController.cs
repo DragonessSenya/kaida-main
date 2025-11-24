@@ -6,7 +6,6 @@ using LoginRequest = Kaida.AuthServer.Models.LoginRequest;
 
 namespace Kaida.AuthServer.Controllers;
 
-
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController(UserService userService, JwtTokenService tokenService) : ControllerBase

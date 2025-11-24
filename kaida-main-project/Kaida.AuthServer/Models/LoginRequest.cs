@@ -1,8 +1,7 @@
-﻿namespace Kaida.AuthServer.Models
+﻿namespace Kaida.AuthServer.Models;
+
+public class LoginRequest
 {
-    public class LoginRequest
-    {
-        public required string Username { get; set; }
-        public required string Password { get; set; }
-    }
+    public required string Username { get; set; }
+    public required string Password { get; set; }
 }

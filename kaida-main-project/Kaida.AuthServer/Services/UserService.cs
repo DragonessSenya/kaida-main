@@ -1,9 +1,7 @@
 ﻿using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Entities;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
 
 namespace Kaida.AuthServer.Services;
 
