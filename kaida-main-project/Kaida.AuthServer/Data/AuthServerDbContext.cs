@@ -8,6 +8,7 @@ public class AuthServerDbContext(DbContextOptions<AuthServerDbContext> options) 
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<App> Apps { get; set; } = null!;
     public DbSet<AppAccess> AppAccess { get; set; } = null!;
+    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
