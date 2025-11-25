@@ -7,6 +7,7 @@ using Duende.IdentityServer.Stores;
 using Duende.IdentityServer.Validation;
 using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Models;
+using Kaida.AuthServer.Old.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,4 @@
-﻿namespace Kaida.AuthServer.Models
+﻿namespace Kaida.Shared.Models
 {
     public class RefreshTokenRequest
     {

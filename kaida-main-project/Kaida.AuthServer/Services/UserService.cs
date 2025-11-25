@@ -1,4 +1,5 @@
-﻿using Kaida.AuthServer.Data;
+﻿using System.Security.Cryptography;
+using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

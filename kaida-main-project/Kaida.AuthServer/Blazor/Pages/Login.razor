@@ -1,0 +1,65 @@
+﻿@page "/login"
+@using Kaida.AuthServer.Models
+@using Microsoft.AspNetCore.Components.Forms
+
+
+<h3>Login</h3>
+
+<p>This will later call the Auth API login endpoint.</p>
+<EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Username</label>
+        <InputText @bind-Value="loginModel.Username"></InputText>
+    </div>
+    <div>
+        <label>Password</label>
+        <InputText @bind-Value="loginModel.Password" type="password"></InputText>
+    </div>
+
+    <button type="submit">Login</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p style="color:red">@errorMessage</p>
+}
+
+@code
+{
+    protected LoginRequest loginModel = new LoginRequest{Password = "", Username = ""};
+    private string errorMessage = string.Empty;
+
+    [Inject] private HttpClient Http { get; set; } = null!;
+    [Inject] private NavigationManager Navigation { get; set; } = null!;
+
+
+    private async Task HandleLogin()
+    {
+        errorMessage = string.Empty;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                // Saving JWT token
+                Console.WriteLine($"Access Token: {result?.Token}");
+            }
+            else
+            {
+                errorMessage = "Invalid User";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+
+
+    }
+}

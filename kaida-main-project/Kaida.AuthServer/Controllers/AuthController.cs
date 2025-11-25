@@ -1,8 +1,7 @@
-﻿using Kaida.AuthServer.Entities;
-using Kaida.AuthServer.Models;
+﻿using Kaida.AuthServer.Models;
 using Kaida.AuthServer.Services;
+using Kaida.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
-using LoginRequest = Kaida.AuthServer.Models.LoginRequest;
 
 namespace Kaida.AuthServer.Controllers;
 

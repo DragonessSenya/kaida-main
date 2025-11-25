@@ -1,11 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36603.0
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11217.181 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer.Tests", "Kaida.AuthServer.Tests\Kaida.AuthServer.Tests.csproj", "{7361B216-557C-469E-8C8E-B1634F3E652D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.Blazor", "Kaida.Blazor\Kaida.Blazor.csproj", "{E251AA94-BCE3-4B7F-BE6B-4B65DBD9E924}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1} = {B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
@@ -14,8 +17,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer", "Kaida.AuthServer\Kaida.AuthServer.csproj", "{7DF9F0DD-D634-4F3D-A7D3-C5B88DDE4B76}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1} = {B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.AuthServer.Old", "Kaida.AuthServer.Old\Kaida.AuthServer.Old.csproj", "{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kaida.Shared", "Kaida.Shared\Kaida.Shared.csproj", "{B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +47,10 @@ Global
 		{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7D3DF1D-02E0-0370-E83D-B8B3F772DD82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6EFA9BE-2380-4E26-98B9-411D4BCDDDD1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
