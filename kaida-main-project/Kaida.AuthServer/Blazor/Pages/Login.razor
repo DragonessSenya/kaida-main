@@ -1,5 +1,5 @@
 ﻿@page "/login"
-@using Kaida.AuthServer.Models
+@using Kaida.Shared.Models
 @using Microsoft.AspNetCore.Components.Forms
 
 
@@ -48,7 +48,8 @@
                 var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 
                 // Saving JWT token
-                Console.WriteLine($"Access Token: {result?.Token}");
+                Console.WriteLine($"Access Token: {result?.AccessToken}");
+                errorMessage = $"Login Successful";
             }
             else
             {

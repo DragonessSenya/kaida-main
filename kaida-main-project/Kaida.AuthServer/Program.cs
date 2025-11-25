@@ -41,6 +41,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped(sp => new HttpClient{BaseAddress = new Uri(builder.Configuration.GetValue<string>("BaseUrl")!)});
 
 var app = builder.Build();
@@ -57,8 +58,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
+app.UseStaticFiles();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-
+await DataSeeder.SeedAsync(app.Services);
 app.Run();

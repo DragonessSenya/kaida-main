@@ -12,7 +12,7 @@ public class AuthController(UserService userService, JwtTokenService tokenServic
     private readonly JwtTokenService _tokenService = tokenService;
 
     [HttpPost("login")]
-    public async Task<IActionResult> LoginAsync(LoginRequest request)
+    public async Task<IActionResult> LoginAsync(Shared.Models.LoginRequest request)
     {
         try
         {
@@ -36,10 +36,11 @@ public class AuthController(UserService userService, JwtTokenService tokenServic
             var refreshToken = await userService.GenerateRefreshTokenForUserAsync(user.UserId, 7);
 
             // 5. Return token (and refresh token if you implement one)
-            return Ok(new
+            return Ok(new LoginResponse
             {
                 AccessToken = token,
-                RefreshToken = refreshToken.Token
+                RefreshToken = refreshToken.Token,
+                Expiration = DateTime.UtcNow.AddDays(7)
             });
         }
         catch (Exception ex)
@@ -71,11 +72,12 @@ public class AuthController(UserService userService, JwtTokenService tokenServic
         var refreshToken = await userService.GenerateRefreshTokenForUserAsync(request.UserId, 7);
 
         // 5. Return token (and refresh token if you implement one)
-        return Ok(new
+        return Ok(new LoginResponse
         {
             AccessToken = token,
-            RefreshToken = refreshToken.Token
-            });
+            RefreshToken = refreshToken.Token,
+            Expiration = DateTime.UtcNow.AddDays(7)
+        });
     }
 
 }
