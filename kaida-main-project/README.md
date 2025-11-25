@@ -1,54 +1,54 @@
-﻿# 🧭 Kaida Authentication & Access System — Project Design Document
+﻿
+# 🧭 Kaida Authentication & Access System — Project Design Document
 
 **Author:** Amy  
 **Project Type:** Personal/Portfolio Project  
-**Goal:** Build a secure, central authentication server (AuthServer) that manages login and access to multiple connected applications (e.g., Dashboard, Trello clone, etc.).  
+**Goal:** Build a secure, central authentication server (AuthServer) that manages login and access for multiple connected applications (e.g., Dashboard, Trello clone, etc.).  
+
 **Tech Stack:**  
 - **Backend:** ASP.NET Core (.NET 8), EF Core, Identity  
 - **Frontend:** Blazor Server (Dashboard Admin UI), later possibly Blazor WebAssembly or Ionic apps  
-- **Database:** SQLite (dev) → PostgreSQL (prod)  
+- **Database:** SQL Server LocalDB / SQLite (dev) → PostgreSQL / Azure SQL (prod)  
 - **Auth Mechanism:** Centralized AuthServer issuing JWT tokens with app access claims  
 
 ---
 
 ## 🔒 1. Core Authentication Pattern
 
-**Chosen Pattern:**  
-**Hybrid centralized authentication.**  
-A single **AuthServer** handles login and issues **JWT access tokens** and **refresh tokens**.  
-Each connected app verifies the token locally but can also contact the AuthServer for access checks or token refresh.
+**Pattern:** **Hybrid centralized authentication**  
+- A single **AuthServer** handles login and issues **JWT access tokens** and **refresh tokens**.  
+- Each connected app validates tokens locally but may optionally verify with AuthServer for sensitive actions.  
 
-### Workflow Summary:
-1. User logs in via AuthServer (or via embedded login page hosted by AuthServer).  
-2. AuthServer verifies credentials and returns:
-   - Short-lived **access token (JWT)** containing claims about user and authorized apps.
-   - Long-lived **refresh token** to renew the access token.
-3. The user navigates to any connected app.
-4. Each app:
-   - Verifies the JWT signature and expiry.
-   - Checks if its **AppId** exists in the user’s token claims.
-   - If valid → grants access; if not → denies.
-5. Optionally, the app can contact `/check-access` on AuthServer to double-verify.
+### Workflow Summary
+1. User logs in via AuthServer (or embedded login UI).  
+2. AuthServer validates credentials and returns:
+   - Short-lived **access token (JWT)** containing claims for authorized apps.
+   - Long-lived **refresh token** for renewing access tokens.  
+3. User opens a connected app (e.g., Dashboard).  
+4. The app:
+   - Verifies JWT signature and expiration.
+   - Checks if its **AppId** exists in token claims.
+   - Grants or denies access accordingly.  
+5. Apps may call AuthServer’s `/check-access` endpoint for extra validation.  
 
 ---
 
 ## 🧱 2. Token Structure & Claims
 
-Each issued JWT includes the following **claims**:
+| Claim     | Type        | Description |
+|-----------|------------|-------------|
+| `sub`     | string     | User ID (GUID or IdentityUser ID) |
+| `email`   | string     | User’s email |
+| `name`    | string     | Username |
+| `appId`   | array of GUIDs | List of applications user has access to |
+| `appName` | array of strings (optional) | Readable app names for admin/debug |
+| `role`    | string     | Role or access level (Admin/User) |
+| `iss`     | string     | Issuer (AuthServer URL) |
+| `aud`     | string     | Audience (KaidaApps) |
+| `iat`     | timestamp  | Issued at |
+| `exp`     | timestamp  | Expiry |
 
-| Claim     | Type                        | Description                                 |
-|-----------|-----------------------------|---------------------------------------------|
-| `sub`     | string                      | User ID (GUID or IdentityUser ID)           |
-| `email`   | string                      | User’s email address                        |
-| `name`    | string                      | Username                                    |
-| `appId`   | array of GUIDs              | List of applications the user has access to |
-| `appName` | array of strings (optional) | Readable app names for admin/debug          |
-| `iat`     | timestamp                   | Issued at                                   |
-| `exp`     | timestamp                   | Expiry                                      |
-| `iss`     | string                      | Issuer (AuthServer URL)                     |
-| `aud`     | string                      | Audience (App IDs or general “KaidaApps”)   |
-
-### Example JWT payload:
+### Example JWT Payload
 ```json
 {
   "sub": "user-123",
@@ -56,6 +56,7 @@ Each issued JWT includes the following **claims**:
   "name": "Amy",
   "appId": ["9d89...f5", "8c22...a2"],
   "appName": ["Dashboard", "KaidaTrello"],
+  "role": "Admin",
   "iss": "https://auth.kaida.local",
   "aud": "KaidaApps",
   "iat": 1731270000,
@@ -68,206 +69,178 @@ Each issued JWT includes the following **claims**:
 ## ⏱️ 3. Token Lifetimes
 
 | Token Type        | Lifetime      | Storage                          | Purpose                      |
-|-------------------|---------------|----------------------------------|------------------------------|
-| **Access Token**  | 15–60 minutes | In memory (or encrypted session) | Sent on each API call        |
-| **Refresh Token** | 7–30 days     | Secure HttpOnly cookie or DB     | Used to get new access token |
+|------------------|---------------|---------------------------------|-------------------------------|
+| **Access Token**  | 15–60 min     | In memory or encrypted session  | Sent on each API call         |
+| **Refresh Token** | 7–30 days     | Secure HttpOnly cookie or DB    | Renew access tokens           |
 
-**Rotation:**  
-When a refresh token is used, AuthServer issues a new pair (access + refresh) and invalidates the old refresh token.  
-**Revocation:**  
-Refresh tokens stored server-side with flags for revocation.  
-Access tokens not stored (short-lived); optional in-memory revocation cache.
+- **Rotation:** New access + refresh pair issued on refresh; old refresh token invalidated.  
+- **Revocation:** Refresh tokens tracked in DB with revocation flags.  
+- **Access Tokens:** Stateless, optionally cached for quick revocation.  
 
 ---
 
-## 🧮 4. Database & Entities
+## 🗃️ 4. Database Architecture
 
-**Database:** EF Core Code First
+### Architecture Decision
+**One database provider, multiple databases per app**  
 
-### Entities
-#### Application
-| Property    | Type         | Description      |
-|-------------|--------------|------------------|
-| Id          | `Guid`       | Unique AppId     |               
-| Name        | `string`     | App display name |
-| Description | `string?`    | Optional info    |
+- **AuthServer** and all apps share a provider (SQL Server / PostgreSQL) but use **isolated databases**:
+  
+| Database        | Purpose |
+|----------------|---------|
+| `Kaida.AuthDb` | AuthServer: users, refresh tokens, app registrations |
+| `Kaida.DashboardDb` | Dashboard-specific data |
+| `Kaida.TrelloDb` | Trello clone data |
+| `Kaida.SharedDb` (optional) | Global logs or audit data |
 
-#### UserAccess
-| Property    | Type       | Description                 |
-|-------------|------------|-----------------------------|
-| Id          | `int`      | Identity                    |
-| UserId      | `string`   | Foreign key to IdentityUser |
-| AppId       | `Guid`     | Foreign key to Application  |
-| AccessLevel | `string`   | e.g. Admin, User            |
-| CreatedAt   | `DateTime` | Audit trail                 |
+- Each app has its own connection string and DbContext for isolation.  
+- Benefits: security, maintainability, scalability, easier backups.  
 
-#### RefreshToken
-| Property   | Type       | Description          |
-|------------|------------|----------------------|
-| Id         | `int`      | Identity             |
-| Token      | `string`   | Secure random string |
-| UserId     | `string`   | Foreign key          |
-| ExpiryDate | `DateTime` | Expiration           |
-| IsRevoked  | `bool`     | Revocation flag      |
-| CreatedAt  | `DateTime` | Audit trail          |
+### Example Connection Strings
+`Kaida.AuthServer/appsettings.json`
+```json
+"ConnectionStrings": {
+  "AuthConnection": "Server=(localdb)\MSSQLLocalDB;Database=Kaida.AuthDb;Trusted_Connection=True;"
+}
+```
 
----
-
-## ⚙️ 5. AuthServer API Endpoints
-
-### `/api/auth/login`
-- **POST**
-- Accepts `username`, `password`.
-- Verifies credentials.
-- Loads all apps the user has access to.
-- Returns:
-  ```json
-  {
-    "token": "<jwt>",
-    "refreshToken": "<refresh_token>",
-    "expiration": "<datetime>"
-  }
-  ```
-
-### `/api/auth/refresh`
-- **POST**
-- Accepts a refresh token.
-- Validates + rotates token.
-- Returns a new access + refresh token pair.
-
-### `/api/auth/check-access`
-- **GET (Authorized)**
-- Checks if the user’s token contains the given `AppId`.
-- Returns `{ "hasAccess": true/false }`.
-
-### `/api/admin/apps`
-- CRUD endpoints for managing registered applications (Admin only).
-
-### `/api/admin/users`
-- Manage user accounts, assign/revoke app access (Admin only).
+`Kaida.Dashboard/appsettings.json`
+```json
+"ConnectionStrings": {
+  "DashboardConnection": "Server=(localdb)\MSSQLLocalDB;Database=Kaida.DashboardDb;Trusted_Connection=True;"
+}
+```
 
 ---
 
-## 🧭 6. App Integration Logic
+## 📦 5. Entities Overview
 
-Each app (e.g., Dashboard, Trello clone, etc.) must have:
-- Its own **AppId (GUID)** configured in `appsettings.json`.
-- A middleware to:
-  1. Validate the JWT.
-  2. Ensure its AppId is in the token’s list of `appId` claims.
+### AuthServer Entities
+| Entity | Description |
+|--------|------------|
+| `Application` | Registered apps with Id + Name |
+| `UserAccess` | Maps users to apps with access levels |
+| `RefreshToken` | Stores refresh tokens with expiry and revocation |
 
-If the token is expired, the app uses `/auth/refresh` to renew.
-
-If user’s access is revoked, refresh token rotation + short access token lifetime ensures the user loses access quickly.
-
----
-
-## 🔐 7. Security Practices
-
-- Use **HTTPS** for all communication.
-- JWT signing:
-  - **Algorithm:** RS256 (asymmetric) or HS256 with ≥ 32-byte secret.
-  - Key stored securely (User Secrets in dev, environment vars in prod).
-- Access tokens **short-lived** (reduce risk of theft).
-- Refresh tokens **rotated & revocable**.
-- Never store JWTs in `localStorage`; use **HttpOnly cookies** or server memory.
-- Validate:
-  - Signature
-  - Issuer
-  - Audience
-  - Expiration
-- Implement a **revocation list** (cache or DB) if critical.
-- Limit sensitive endpoints (e.g., `/admin`) via roles/claims.
+### Each App’s Entities
+- App-specific data only (`DashboardDbContext`, etc.)
+- No auth-related data stored locally  
 
 ---
 
-## 🧑‍💼 8. Dashboard Admin UI
+## ⚙️ 6. AuthServer API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/login` | POST | Validates credentials; returns JWT + refresh token |
+| `/api/auth/refresh` | POST | Rotates refresh token and returns new JWT + refresh token |
+| `/api/auth/check-access` | GET | Verifies user access to a specific AppId |
+| `/api/admin/apps` | CRUD | Manage registered applications |
+| `/api/admin/users` | CRUD | Manage users and app access |
+
+---
+
+## 🧭 7. App Integration Logic
+
+Each connected app must:
+- Configure its **AppId** in `appsettings.json`.  
+- Validate JWTs locally using AuthServer’s public key.  
+- Ensure its AppId exists in token claims.  
+- Call `/refresh` or `/check-access` if token expired or extra verification needed.  
+
+---
+
+## 🔐 8. Security Practices
+
+- **HTTPS only**  
+- JWT Signing: RS256 (asymmetric) preferred; secrets stored securely  
+- **Short-lived access tokens**, **rotating refresh tokens**  
+- **HttpOnly cookies** or server memory for tokens (avoid localStorage)  
+- Validate signature, issuer, audience, expiration  
+- Admin routes protected with **role-based authorization**  
+- Optional: audit logging, IP tracking, token revocation cache  
+
+---
+
+## 🧑‍💼 9. Dashboard Admin UI
 
 **Type:** Blazor Server  
-**Purpose:** Manage apps, users, and their access.
+**Purpose:** Central management UI for all Kaida apps  
 
-### Features:
-- Login via AuthServer.
-- Show overview of registered apps.
-- CRUD for Applications.
-- CRUD for UserAccess entries.
-- Option to revoke tokens.
-- Visualize login activity and token expirations.
+### Features
+- Login via AuthServer  
+- Manage apps, users, and access  
+- View and revoke tokens  
+- Audit login activity and roles  
 
-### Security:
-- Only users with `"Admin"` role claim can access this UI.
-- Uses the same central AuthServer tokens for authentication.
+### Security
+- Only `"Admin"` role users allowed  
+- Uses AuthServer JWTs for authentication  
 
 ---
 
-## 🧰 9. Development Setup
+## 🧰 10. Development Setup
 
 ### Projects
-| Project                  | Type          | Description                    |
-|--------------------------|---------------|--------------------------------|
-| `Kaida.AuthServer`       | ASP.NET API   | Central auth service           |
-| `Kaida.AuthServer.Tests` | xUnit         | Unit tests                     |
-| `Kaida.Dashboard`        | Blazor Server | Admin UI                       |
-| (Future) Other apps      | API/UI        | Authenticated using AuthServer |
+| Project | Type | Description |
+|---------|------|------------|
+| `Kaida.AuthServer` | ASP.NET Core API | Central auth service |
+| `Kaida.AuthServer.Tests` | xUnit | Unit tests for auth logic |
+| `Kaida.Dashboard` | Blazor Server | Admin dashboard |
+| (Future) Other apps | API/UI | Authenticated via AuthServer |
 
 ### Database
-- Dev: SQLite (`Data Source=kaida.db`)
-- Prod: PostgreSQL (`ConnectionString` via env vars)
+- **Dev:** SQL Server LocalDB or SQLite  
+- **Prod:** PostgreSQL or Azure SQL  
 
 ### Run Sequence
-1. Run migrations: `dotnet ef database update`
-2. Seed database:
-   - Default admin user
-   - Example apps
-3. Start AuthServer.
-4. Test via Swagger or Postman:
-   - `/api/auth/login`
-   - `/api/auth/check-access`
-5. Connect Dashboard to AuthServer via HttpClient.
+1. Run EF migrations per database/project  
+2. Seed AuthDb with default admin user and sample apps  
+3. Start AuthServer and test `/login` and `/check-access`  
+4. Connect Dashboard via HttpClient  
 
 ---
 
-## 🧪 10. Testing
+## 🧪 11. Testing
 
-- **Unit tests:**
-  - Login success/fail
-  - Access check logic
-  - Refresh token rotation
-- **Integration tests:**
-  - Token validation pipeline
-  - JWT claim parsing in downstream apps
+- **Unit Tests:** Login, access checks, refresh token rotation  
+- **Integration Tests:** Token validation across apps, revocation handling  
 
 ---
 
-## 🔄 11. Future Enhancements
+## 🔄 12. Future Enhancements
 
-- Support external logins (Google, GitHub) through IdentityServer if needed.
-- Add MFA (2FA) via TOTP or email verification.
-- Implement full OIDC (OpenID Connect) for standards compliance.
-- Add audit logging for token issuance and revocation.
-
----
-
-## ✅ 12. Key Design Principles
-
-- **Centralized authentication**: one identity source for all apps.  
-- **Decentralized validation**: each app can independently validate tokens.  
-- **Least privilege**: token includes only what’s necessary.  
-- **Short-lived access tokens**: minimize damage from leaks.  
-- **Refresh token rotation**: prevent replay attacks.  
-- **Extensible**: new apps and scopes can be added easily.  
-- **Transparency**: Admin Dashboard gives visibility and control.
+- External logins (Google, GitHub)  
+- Two-Factor Authentication (TOTP or email)  
+- Full OpenID Connect compliance  
+- Audit logging and token tracking  
+- API gateway for multi-app scaling  
 
 ---
 
-## 🚀 13. Next Steps
+## ✅ 13. Key Design Principles
 
-1. Define final **JWT claim structure** (implement in AuthController).  
-2. Implement **refresh token storage & endpoint**.  
-3. Connect **Blazor Dashboard** to AuthServer (admin login + CRUD for apps/users).  
-4. Secure Dashboard routes with role-based authorization.  
-5. Add `/check-access` and token verification middleware for other apps.  
-6. Add integration tests and seed data.
+| Principle | Explanation |
+|-----------|------------|
+| Centralized Authentication | One identity source for all apps |
+| Decentralized Validation | Each app validates JWTs locally |
+| Least Privilege | Tokens include only necessary claims |
+| Short-lived Access Tokens | Minimize damage if token is stolen |
+| Refresh Token Rotation | Prevent replay attacks |
+| Isolated Databases | Security, maintainability, scalability |
+| Extensible | Easy to add new apps or claims |
+| Transparent Admin Control | Dashboard gives oversight |
+
+---
+
+## 🚀 14. Next Steps
+
+1. Define final JWT claim structure and implement in `AuthController`  
+2. Implement refresh token storage, rotation, and endpoints  
+3. Set up Dashboard login and role-based route protection  
+4. Configure multiple DbContexts and connection strings  
+5. Write unit and integration tests for authentication flows  
+6. Seed data with default admin and example applications  
 
 ---
 
