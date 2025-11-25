@@ -1,35 +1,48 @@
 ﻿using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Linq;
 
 namespace Kaida.AuthServer.Tests.TestHelpers
 {
     public static class DbContextFactory
     {
-        public static AuthDbContext CreateInMemory(string v)
+        public static AuthServerDbContext CreateInMemory()
         {
-            var options = new DbContextOptionsBuilder<AuthDbContext>()
+            var options = new DbContextOptionsBuilder<AuthServerDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options;
 
-            var context = new AuthDbContext(options);
+            var context = new AuthServerDbContext(options);
+            var passwordHasher = new PasswordHasher<User>();
 
             // Seed an application
-            var app = new Application(Guid.NewGuid(), "DemoApp");
+            var app = new App
+            {
+                AppId = Guid.NewGuid(),
+                AppName = "DemoApp"
+            };
             context.Apps.Add(app);
 
-            // Seed a user access for testuser
-            var testUser = new Microsoft.AspNetCore.Identity.IdentityUser("testuser") { Id = "testuser-id" };
-            var userAccess = new UserAccess(0, testUser.Id, app.Id, "Admin")
+            // Seed a user
+            var testUser = new User
             {
+                UserId = Guid.NewGuid(),
+                UserName = "testuser",
+                Password = passwordHasher.HashPassword(null, "testPassword!")
+            };
+            context.Users.Add(testUser);
+
+            // Seed a user access (join table)
+            var userAccess = new AppAccess
+            {
+                UserId = testUser.UserId,
+                AppId = app.AppId,
                 User = testUser,
                 App = app,
-                UserId = testUser.Id,
-                AppId = app.Id
             };
-            context.UserAccesses.Add(userAccess);
+            context.AppAccess.Add(userAccess);
 
             context.SaveChanges();
 
