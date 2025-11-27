@@ -48,7 +48,15 @@
                 var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 
                 // Saving JWT token
-                Console.WriteLine($"Access Token: {result?.AccessToken}");
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,      // only over HTTPS
+                    SameSite = SameSiteMode.Strict,
+                    Expires = result != null ? result.Expiration : null
+                };
+
+               
                 errorMessage = $"Login Successful";
             }
             else

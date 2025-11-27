@@ -11,7 +11,7 @@ namespace Kaida.AuthServer.Services;
 
 public class JwtTokenService(IConfiguration configuration)
 {
-    public string GenerateJwtToken(JwtClaimModel claims)
+    public (string Token, DateTime Expiration) GenerateJwtToken(JwtClaimModel claims)
     {
         var appKey = configuration["JwtSettings:AuthServer:Key"];
         var issuer = configuration["JwtSettings:AuthServer:Issuer"];
@@ -34,18 +34,21 @@ public class JwtTokenService(IConfiguration configuration)
         var keyBytes = Encoding.UTF8.GetBytes(appKey);
         var signedKey = new SymmetricSecurityKey(keyBytes);
         var creds = new SigningCredentials(signedKey, SecurityAlgorithms.HmacSha256);
+        var expiration = DateTime.UtcNow.AddMinutes(expirationMinutes);
 
         var token = new JwtSecurityToken(
             issuer: issuer,
             claims: jwtClaimList,
-            expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
+            expires: expiration,
             signingCredentials: creds
         );
 
         var tokenHandler = new JwtSecurityTokenHandler();
 
 
-        return tokenHandler.WriteToken(token);
+        return (tokenHandler.WriteToken(token), expiration);
 
     }
+
+
 }

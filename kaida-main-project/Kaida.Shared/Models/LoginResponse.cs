@@ -21,7 +21,7 @@ public class LoginResponse
 
     /// <summary>
     /// The UTC expiration time of the JWT token.
-    /// </summary>
+   /// </summary>
     [Required]
     public required DateTime Expiration { get; set; }
 }

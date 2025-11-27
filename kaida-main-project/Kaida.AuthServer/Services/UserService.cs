@@ -1,12 +1,14 @@
-﻿using System.Security.Cryptography;
-using Kaida.AuthServer.Data;
+﻿using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System.Linq;
+using System.Security.Cryptography;
 
 namespace Kaida.AuthServer.Services;
 
-public class UserService(AuthServerDbContext db)
+public class UserService(AuthServerDbContext db, IConfiguration config)
 {
     private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
     public async Task<User?> ValidateUserAsync(string username, string password)
@@ -21,7 +23,7 @@ public class UserService(AuthServerDbContext db)
             return validatedUser;
         }
         return null;
-       
+
     }
 
     public async Task<IEnumerable<AppAccess>> GetAllowedAppsForUserAsync(Guid userId)
@@ -32,9 +34,11 @@ public class UserService(AuthServerDbContext db)
 
     }
 
-    public async Task<RefreshToken> GenerateRefreshTokenForUserAsync(Guid userId, int daysValid = 7)
+    public async Task<RefreshToken> GenerateRefreshTokenForUserAsync(Guid userId)
     {
+        var daysValid = GetRefreshTokenExpirationDays();
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
         var refreshToken = new RefreshToken
         {
             UserId = userId,
@@ -47,21 +51,36 @@ public class UserService(AuthServerDbContext db)
         return refreshToken;
     }
 
-    public bool ValidateRefreshTokenForUserAsync(Guid userId, string refreshToken)
+    public async Task<RefreshToken?> ValidateAndGenerateRefreshTokenForUserAsync(Guid userId, string refreshToken)
     {
-        var isUserValid =  db.RefreshTokens.Any(t => t.Token == refreshToken && t.UserId == userId && t.Expiration >= DateTime.UtcNow && t.IsRevoked == false);
-        return isUserValid;
+        var daysValid = GetRefreshTokenExpirationDays();
+        var oldToken =
+              await db.RefreshTokens.FirstOrDefaultAsync(t => t.Token == refreshToken && t.UserId == userId && t.IsRevoked == false && t.Expiration >= DateTime.UtcNow);
+
+        if (oldToken == null)
+            return null;
+
+        oldToken.IsRevoked = true;
+        
+        var newRefreshToken = new RefreshToken
+        {
+            UserId = userId,
+            Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            Expiration = DateTime.UtcNow.AddDays(daysValid)
+        };
+
+        db.RefreshTokens.Add(newRefreshToken);
+        await db.SaveChangesAsync();
+
+        return refreshToken != null ? newRefreshToken : null;
     }
 
-    public async Task RevokeRefreshTokenForUser(RefreshToken refreshToken)
+
+    public int GetRefreshTokenExpirationDays()
     {
-        var oldToken =
-             await db.RefreshTokens.FirstOrDefaultAsync(t => t.Token == refreshToken.Token && t.UserId == refreshToken.UserId);
-        if(oldToken != null)
-        {
-            oldToken.IsRevoked = true;
-            await db.SaveChangesAsync();
-        }
+        // Read from configuration
+        return config.GetValue<int>("JwtSettings:AuthServer:RefreshTokenExpirationDays");
     }
+
 }
 
