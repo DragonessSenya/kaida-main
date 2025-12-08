@@ -3,13 +3,14 @@ using Kaida.AuthServer.Helpers;
 using Kaida.AuthServer.Models;
 using Kaida.AuthServer.Services;
 using Kaida.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Kaida.AuthServer.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(UserService userService, JwtTokenService tokenService) : ControllerBase
+public class AuthController(UserService userService, JwtTokenService tokenService, LoginService loginService) : ControllerBase
 {
     private readonly JwtTokenService _tokenService = tokenService;
 
@@ -18,9 +19,17 @@ public class AuthController(UserService userService, JwtTokenService tokenServic
     {
         try
         {
-            // 1. Validate user credentials
+            // 1. Validate user credentials and handle failed login attempts
             var user = await userService.ValidateUserAsync(request.Username, request.Password);
-            if (user == null) return Unauthorized(new { Message = "Your not authorized" });
+            if (user == null)
+            {
+                if(loginService.handleFailedLoginAttempts())
+                    return Unauthorized(new { Message = "Too many failed login attempts. You have been blocked" });
+                return Unauthorized(new { Message = "Your not authorized" });
+            }
+
+
+
 
             // 2. Determine allowed apps
             var allowedApps = (await userService.GetAllowedAppsForUserAsync(user.UserId)).ToList();
@@ -70,6 +79,13 @@ public class AuthController(UserService userService, JwtTokenService tokenServic
             RefreshToken = refreshToken.Token,
             Expiration = token.Expiration
         });
+    }
+
+    [Authorize(Policy = "AdminAppOnly")]
+    [HttpGet("get_banned_users")]
+    public async Task<List<FailedLoginAttemptsDto>> GetBannedUsers()
+    {
+        return await userService.GetFailedLoginAttempts();
     }
 
 }

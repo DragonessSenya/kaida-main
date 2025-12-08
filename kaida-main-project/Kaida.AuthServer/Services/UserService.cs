@@ -1,5 +1,6 @@
 ﻿using Kaida.AuthServer.Data;
 using Kaida.AuthServer.Entities;
+using Kaida.AuthServer.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -80,6 +81,23 @@ public class UserService(AuthServerDbContext db, IConfiguration config)
     {
         // Read from configuration
         return config.GetValue<int>("JwtSettings:AuthServer:RefreshTokenExpirationDays");
+    }
+
+    public async Task<List<FailedLoginAttemptsDto>> GetFailedLoginAttempts() 
+    {
+        var failedAttempts = await db.FailedLoginAttempts.ToListAsync();
+
+        var returnList = new List<FailedLoginAttemptsDto> { };
+        if(failedAttempts.Count == 0) { return returnList; }
+        foreach (var attempt in failedAttempts) 
+        {
+            returnList.Add(new FailedLoginAttemptsDto
+            {
+                IpAddress = attempt.IpAddress,
+                FailedLoginAttempts = attempt.LoginAttempts
+            });
+        }
+        return returnList;
     }
 
 }

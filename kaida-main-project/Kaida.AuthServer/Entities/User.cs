@@ -10,4 +10,7 @@ public class User
     public required string UserName { get; set; }
     [MaxLength(50)]
     public required string Password { get; set; }
+
+    public ICollection<AppAccess> AppAccesses { get; set; } = new List<AppAccess>();
+
 }

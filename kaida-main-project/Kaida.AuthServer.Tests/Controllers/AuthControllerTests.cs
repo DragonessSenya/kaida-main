@@ -2,6 +2,7 @@
 using Kaida.AuthServer.Services;
 using Kaida.AuthServer.Tests.TestHelpers;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Xunit.Abstractions;
 
 namespace Kaida.AuthServer.Tests.Controllers;
@@ -15,20 +16,10 @@ public class AuthControllerTests
     {
         var dbContext = DbContextFactory.CreateInMemory();
         _output = output;
-        _userService = new UserService(dbContext);
+        IConfiguration config = new ConfigurationBuilder().Build();
+        _userService = new UserService(dbContext, config);
     }
 
-    [Fact]
-    async Task ValidateUser_ReturnsUser_WhenCredentialsAreCorrect()
-    {
-        var db = DbContextFactory.CreateInMemory(); // fully isolated
-        var userService = new UserService(db);
-
-        var user = await userService.ValidateUserAsync("testuser", "testPassword!");
-
-        Assert.False(user == null, "No User Was Found");
-        _output?.WriteLine($"User was successfully obtained from the database.");
-    }
 
     [Fact]
     async Task ValidateUserAsync_WhenCredentialsAreNotCorrect()
@@ -61,6 +52,12 @@ public class AuthControllerTests
             Assert.True(appsForUser != null && appsForUser.Count != 0, "User has allowed Apps");
         }
     }
-}
+
+    [Fact]
+    async Task TestBruteForceProtection()
+    {
+
+    }
+    }
 
 

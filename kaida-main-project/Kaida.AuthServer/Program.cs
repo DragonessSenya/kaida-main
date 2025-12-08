@@ -1,6 +1,8 @@
 using Kaida.AuthServer.Data;
+using Kaida.AuthServer.Policies;
 using Kaida.AuthServer.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -22,7 +24,7 @@ builder.Services.AddDbContext<AuthServerDbContext>(options =>
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
@@ -39,9 +41,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(appKey))
         };
     });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminAppOnly", policy => policy.Requirements.Add(new AllowedAppRequirement("AdminAppId")));
+});
+builder.Services.AddSingleton<IAuthorizationHandler, AllowedAppHandler>();
 
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<LoginService>();
+
 builder.Services.AddScoped(sp => new HttpClient{BaseAddress = new Uri(builder.Configuration.GetValue<string>("BaseUrl")!)});
 
 var app = builder.Build();
