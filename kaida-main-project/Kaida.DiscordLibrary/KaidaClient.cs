@@ -9,7 +9,7 @@ namespace Kaida.Discord.Library
 {
     public class KaidaClient
     {
-        public GuildMemberService Guild { get; }
+        public GuildService Guild { get; }
         public UserService User { get; }
 
 
@@ -19,7 +19,7 @@ namespace Kaida.Discord.Library
             httpClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", botToken);
 
-            Guild = new GuildMemberService(httpClient);
+            Guild = new GuildService(httpClient);
             User = new UserService(httpClient);
         }
 

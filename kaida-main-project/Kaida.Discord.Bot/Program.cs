@@ -26,8 +26,11 @@ public class Program
             //     
             // }
 
-            var url = client.User.GetUserAvatarUrl(95277742110539776);
-            Console.WriteLine(url);
+            //var url = client.User.GetUserAvatarUrl(142123374305345536);
+            //Console.WriteLine(url);
+
+            var message = await client.Guild.FetchGuildMessageFromChannel(888484257390010418, 1449824863182393526);
+            Console.WriteLine(message?.content);
         }
         catch (Exception ex)
         {

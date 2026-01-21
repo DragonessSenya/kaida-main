@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Kaida.Discord.Library.Interfaces;
-using Kaida.Discord.Library.Models;
+﻿using Kaida.Discord.Library.Interfaces;
 using Kaida.Discord.Library.Utils;
+using Kaida.Discord.Models.Models;
 using Kaida.DiscordLibrary.Utils;
 
 namespace Kaida.Discord.Library.Services
@@ -51,6 +48,7 @@ namespace Kaida.Discord.Library.Services
         {
             throw new NotImplementedException();
         }
+
 
         public string GetUserAvatarUrl(ulong userId)
         {

@@ -1,4 +1,4 @@
-﻿using Kaida.Discord.Library.Models;
+﻿using Kaida.Discord.Models.Models;
 
 namespace Kaida.Discord.Library.Interfaces
 {
